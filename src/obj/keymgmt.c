@@ -95,6 +95,21 @@ static int prep_get_pub_key(P11PROV_OBJ **obj, CK_KEY_TYPE type)
     /* check if we have a pub key associated to a private key */
     if (key->class == CKO_PRIVATE_KEY) {
         P11PROV_OBJ *pobj = p11prov_obj_get_associated(key);
+        if ((!pobj || pobj->class != CKO_PUBLIC_KEY)
+            && !p11prov_obj_get_attr(key, CKA_P11PROV_PUB_KEY)) {
+            /* Some tokens (e.g. OP-TEE) do not expose the public point on
+             * private keys, so search for the matching public key object.
+             * Associate it explicitly, find_associated() does not replace
+             * an object (e.g. a certificate) that is already associated,
+             * and the key keeps the returned object alive. */
+            pobj = p11prov_obj_find_associated(key, CKO_PUBLIC_KEY);
+            if (pobj) {
+                p11prov_obj_set_associated(key, pobj);
+                /* set_associated() took its own reference, drop the one
+                 * returned by find_associated(), pobj remains valid */
+                p11prov_obj_free(pobj);
+            }
+        }
         if (pobj && pobj->class == CKO_PUBLIC_KEY) {
             /* replace obj with the public one */
             *obj = pobj;
