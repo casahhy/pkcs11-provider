@@ -1041,6 +1041,8 @@ P11PROV_OBJ *p11prov_obj_pub_from_priv(P11PROV_OBJ *priv)
     /* make sure key is associated to the private one */
     p11prov_obj_set_associated(priv, key);
     p11prov_obj_set_associated(key, priv);
+    /* priv now holds a reference, drop the one from p11prov_obj_new() */
+    p11prov_obj_free(key);
 
     return key;
 }
